@@ -1,2 +1,4 @@
 __pycache__
 anon.dat
+data/*
+!data
