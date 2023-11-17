@@ -57,7 +57,7 @@ class AnonymousDataWriter:
         for particapant in particapants:
             if particapant != "BROADCAST":
                 self.writeQueue.append(f"{timestamp} - \"{particapant}\"\n")
-        if len(self.writeQueue) > 500:
+        if len(self.writeQueue) > 750:
             self.flush()
     def close(self):
         self.flush()
