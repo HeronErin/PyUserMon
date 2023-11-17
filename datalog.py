@@ -58,7 +58,7 @@ BLOCK_SIZE = 900          # This should be relativly big
 class AnonymousDataWriter:
     def __init__(self, *args, **kwargs):
         self.file = gzip.open(*args, **kwargs)
-        self.last_flush = time.time()
+        self.lastFlush = time.time()
 
         self.writeQueue = []
         self.random = random.SystemRandom() # cryptographically secure random number gen
@@ -82,9 +82,9 @@ class AnonymousDataWriter:
         self.file.close()
     def flush(self, force=False):
         print("Flushed writeQueue")
-        if time.time()-self.last_flush < 20 and not force: # Log potential ddos if too many packets are recived (BLOCK_SIZE in 20 secs)
+        if time.time()-self.lastFlush < 20 and not force: # Log potential ddos if too many packets are recived (BLOCK_SIZE in 20 secs)
             f = open("warning.log", "a")
-            f.write(f"At {time.ctime()} it was detected that a flush delta of {time.time()-self.last_flush} happended. Suspecting data entegrity loss.")
+            f.write(f"At {time.ctime()} it was detected that a flush delta of {time.time()-self.lastFlush} happended. Suspecting data entegrity loss.")
             f.write("Here are the past 20 lines sent. A ddos or deauth is suspected (or just a of people):")
             f.writelines(self.writeQueue[:-20])
             f.close()
@@ -96,7 +96,7 @@ class AnonymousDataWriter:
 
         self.writeQueue.clear()
 
-        self.last_flush = time.time()
+        self.lastFlush = time.time()
 
     def __enter__(self, *args, **kwargs):
         return self
@@ -107,8 +107,8 @@ class OutputFileManager(AnonymousDataWriter):
     def openNew(self):
         if self.file != None:
             self.file.close()
-        self.last_flush       = time.time()
-        self.last_opened_file = time.time()
+        self.lastFlush       = time.time()
+        self.lastOpenedFile = time.time()
         self.file             = gzip.open(os.path.join(self.dir, time.ctime() + ".txt.gz"), "w")
     def __init__(self, _dir):
         self.dir        = _dir
@@ -118,7 +118,7 @@ class OutputFileManager(AnonymousDataWriter):
         self.openNew()
     def flush(self, force=False):
         super().flush(force=force)
-        if time.time()-self.last_opened_file  > 1*60*60: # Once every hour (to keep compression high and memory low)
+        if time.time()-self.lastOpenedFile  > 1*60*60: # Once every hour (to keep compression high and memory low)
             self.openNew()
 
 def rootTest():
