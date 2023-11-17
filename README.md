@@ -6,5 +6,3 @@ This project is intended as a school project. It uses Pyshark (a python API for 
 **The subjects' privacy is to be given top priority.**
 
 
-
-See datalog.py for how this is mostly implemented.

@@ -1,8 +1,8 @@
 import subprocess, os
 
 def getInterfaces():
-    ip = subprocess.run(["ifconfig", "-s"], stdout=subprocess.PIPE)
-    lines = ip.stdout.decode("utf-8").split("\n")[1:]
+    proc = subprocess.run(["ifconfig", "-s"], stdout=subprocess.PIPE)
+    lines = proc.stdout.read().decode("utf-8").split("\n")[1:]
     return [line.split(" ")[0] for line in lines if line]
 
 def startMonitorMode(interface):
