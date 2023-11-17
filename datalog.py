@@ -4,6 +4,7 @@ from wifi import *
 import hashlib
 import os, time
 import random
+import gzip
 from progress.bar import Bar
 
 BROADCAST = "ff:ff:ff:ff:ff:ff"
@@ -56,7 +57,7 @@ BLOCK_SIZE = 900          # This should be relativly big
 
 class AnonymousDataWriter:
     def __init__(self, *args, **kwargs):
-        self.file = open(*args, **kwargs)
+        self.file = gzip.open(*args, **kwargs)
         self.last_flush = time.time()
 
         self.writeQueue = []
@@ -91,7 +92,7 @@ class AnonymousDataWriter:
         # Further obfuscates who is talking to whom and the real timestamp
         self.random.shuffle(self.writeQueue)
 
-        self.file.writelines(self.writeQueue)
+        self.file.write("".join(self.writeQueue).encode("utf-8"))
 
         self.writeQueue.clear()
 
@@ -102,6 +103,23 @@ class AnonymousDataWriter:
     def __exit__(self, *args, **kwargs):
         self.close()
 
+class OutputFileManager(AnonymousDataWriter):
+    def openNew(self):
+        if self.file != None:
+            self.file.close()
+        self.last_flush       = time.time()
+        self.last_opened_file = time.time()
+        self.file             = gzip.open(os.path.join(self.dir, time.ctime() + ".txt.gz"), "w")
+    def __init__(self, _dir):
+        self.dir        = _dir
+        self.file       = None
+        self.writeQueue = []
+        self.random     = random.SystemRandom() # cryptographically secure random number gen
+        self.openNew()
+    def flush(self, force=False):
+        super().flush(force=force)
+        if time.time()-self.last_opened_file  > 1*60*60: # Once every hour (to keep compression high and memory low)
+            self.openNew()
 
 def rootTest():
     proc = subprocess.run(["whoami"], stdout=subprocess.PIPE)
@@ -135,7 +153,7 @@ class PacketGen:
 def main():
     INTERFACE = "wlp0s20f3"
     
-    file = AnonymousDataWriter("data/"+time.ctime(), "w")
+    file = OutputFileManager("data")
     barCount = 0
     bar = Bar('Time until next flush', max=BLOCK_SIZE)
     with file:
