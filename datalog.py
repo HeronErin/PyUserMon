@@ -28,28 +28,30 @@ def weeklyStamp():
 def anonymize(mac):
     if mac != BROADCAST and mac != None:
         m = hashlib.sha512()
-        m.update(mac.encode("utf-8"))
-        m.update(ANON_DATA)
-        m.update(weeklyStamp().encode("ascii"))
+        m.update(mac.encode("utf-8"))              # Mac address goes first
+        m.update(ANON_DATA)                        # Unique hashes per user/study
+        m.update(weeklyStamp().encode("ascii"))    # Reset hash(s) each week
         return m.hexdigest()
     else:
         return "BROADCAST"
 def anonymizedParticapants(packet):
-    particapants = set()
-    if "wlan" in packet:
-        if hasattr(packet.wlan, "ta"):
+    particapants = set()  # For all we know somebody could be talking to themselves
+
+    if "wlan" in packet:  # Could sniff any format of packets
+
+        if hasattr(packet.wlan, "ta"): # From addr?
             particapants.add(anonymize(packet.wlan.ta))
-        if hasattr(packet.wlan, "da"):
+        if hasattr(packet.wlan, "da"): # Dest addr
             particapants.add(anonymize(packet.wlan.da))
-        if hasattr(packet.wlan, "ra"):
+        if hasattr(packet.wlan, "ra"): # Recepient addr?
             particapants.add(anonymize(packet.wlan.ra))
 
     return list(particapants)
 
 
 
-TIMESTAMP_MARGIN = 20*60
-BLOCK_SIZE = 900
+TIMESTAMP_MARGIN = 15*60  # Not too big as not to destroy accuracy but big enough to ensure privacy
+BLOCK_SIZE = 900          # This should be relativly big
 
 
 class AnonymousDataWriter:
@@ -79,14 +81,14 @@ class AnonymousDataWriter:
         self.file.close()
     def flush(self, force=False):
         print("Flushed writeQueue")
-        if time.time()-self.last_flush < 20 and not force:
+        if time.time()-self.last_flush < 20 and not force: # Log potential ddos if too many packets are recived (BLOCK_SIZE in 20 secs)
             f = open("warning.log", "a")
             f.write(f"At {time.ctime()} it was detected that a flush delta of {time.time()-self.last_flush} happended. Suspecting data entegrity loss.")
             f.write("Here are the past 20 lines sent. A ddos or deauth is suspected (or just a of people):")
             f.writelines(self.writeQueue[:-20])
             f.close()
 
-        # Further obfuscates who is talking to who and the real timestamp
+        # Further obfuscates who is talking to whom and the real timestamp
         self.random.shuffle(self.writeQueue)
 
         self.file.writelines(self.writeQueue)
